@@ -1,0 +1,157 @@
+// =========================================
+// 0. LIMPAR O BANCO (OPCIONAL EM AMBIENTE DE TESTE)
+// =========================================
+MATCH (n) DETACH DELETE n;
+// =========================================
+// 1. CONSTRAINTS / ÍNDICES
+// =========================================
+CREATE CONSTRAINT user_id_unique IF NOT EXISTS
+FOR (u:User) REQUIRE u.id IS UNIQUE;
+
+CREATE CONSTRAINT post_id_unique IF NOT EXISTS
+FOR (p:Post) REQUIRE p.id IS UNIQUE;
+
+CREATE CONSTRAINT hashtag_name_unique IF NOT EXISTS
+FOR (h:Hashtag) REQUIRE h.name IS UNIQUE;
+
+CREATE CONSTRAINT group_id_unique IF NOT EXISTS
+FOR (g:Group) REQUIRE g.id IS UNIQUE;
+// =========================================
+// 2. CRIAÇÃO DOS USUÁRIOS
+// =========================================
+CREATE
+  (u1:User {id:'u1', name:'Gabriel',  city:'São Paulo',  joined:date('2023-01-10')}),
+  (u2:User {id:'u2', name:'Ana',      city:'São Paulo',  joined:date('2023-02-05')}),
+  (u3:User {id:'u3', name:'João',     city:'Campinas',   joined:date('2023-03-20')}),
+  (u4:User {id:'u4', name:'Mariana',  city:'Osasco',     joined:date('2023-04-01')}),
+  (u5:User {id:'u5', name:'Carlos',   city:'Campinas',   joined:date('2023-05-15')});
+// =========================================
+// 3. RELACIONAMENTOS DE SEGUIR / AMIZADE
+// (direcionais – estilo Twitter/Instagram)
+// =========================================
+MATCH (u1:User {id:'u1'}),
+      (u2:User {id:'u2'}),
+      (u3:User {id:'u3'}),
+      (u4:User {id:'u4'}),
+      (u5:User {id:'u5'})
+CREATE
+  (u1)-[:FOLLOWS]->(u2),
+  (u1)-[:FOLLOWS]->(u3),
+  (u2)-[:FOLLOWS]->(u1),
+  (u2)-[:FOLLOWS]->(u4),
+  (u3)-[:FOLLOWS]->(u2),
+  (u3)-[:FOLLOWS]->(u5),
+  (u4)-[:FOLLOWS]->(u1),
+  (u4)-[:FOLLOWS]->(u3),
+  (u5)-[:FOLLOWS]->(u1);
+// =========================================
+// 4. POSTS, HASHTAGS E GRUPOS
+// =========================================
+CREATE
+  (p1:Post {id:'p1', text:'Estudando Neo4j e grafos hoje!',        createdAt:datetime('2025-11-22T10:00:00')}),
+  (p2:Post {id:'p2', text:'Café e código, combinação perfeita.',   createdAt:datetime('2025-11-22T11:00:00')}),
+  (p3:Post {id:'p3', text:'Alguém indo para Campinas amanhã?',     createdAt:datetime('2025-11-21T09:30:00')}),
+  (p4:Post {id:'p4', text:'Dica de série de tecnologia?',          createdAt:datetime('2025-11-20T20:15:00')}),
+  (p5:Post {id:'p5', text:'Jogando futebol à noite!',              createdAt:datetime('2025-11-19T21:00:00')}),
+
+  (g1:Group {id:'g1', name:'Dev Back-end'}),
+  (g2:Group {id:'g2', name:'Futebol de Quinta'}),
+  
+  (h1:Hashtag {name:'#grafos'}),
+  (h2:Hashtag {name:'#neo4j'}),
+  (h3:Hashtag {name:'#java'}),
+  (h4:Hashtag {name:'#futebol'});
+// =========================================
+// 5. VINCULAR POSTS A AUTORES, HASHTAGS E GRUPOS
+// =========================================
+MATCH
+  (u1:User {id:'u1'}),
+  (u2:User {id:'u2'}),
+  (u3:User {id:'u3'}),
+  (u4:User {id:'u4'}),
+  (u5:User {id:'u5'}),
+  (p1:Post {id:'p1'}),
+  (p2:Post {id:'p2'}),
+  (p3:Post {id:'p3'}),
+  (p4:Post {id:'p4'}),
+  (p5:Post {id:'p5'}),
+  (g1:Group {id:'g1'}),
+  (g2:Group {id:'g2'}),
+  (h1:Hashtag {name:'#grafos'}),
+  (h2:Hashtag {name:'#neo4j'}),
+  (h3:Hashtag {name:'#java'}),
+  (h4:Hashtag {name:'#futebol'})
+CREATE
+  // autores
+  (u1)-[:POSTED]->(p1),
+  (u2)-[:POSTED]->(p2),
+  (u3)-[:POSTED]->(p3),
+  (u4)-[:POSTED]->(p4),
+  (u5)-[:POSTED]->(p5),
+
+  // posts em grupos
+  (p1)-[:IN_GROUP]->(g1),
+  (p2)-[:IN_GROUP]->(g1),
+  (p5)-[:IN_GROUP]->(g2),
+
+  // hashtags
+  (p1)-[:TAGGED_WITH]->(h1),
+  (p1)-[:TAGGED_WITH]->(h2),
+  (p2)-[:TAGGED_WITH]->(h3),
+  (p5)-[:TAGGED_WITH]->(h4);
+// =========================================
+// 6. CURTIDAS E COMENTÁRIOS
+// =========================================
+MATCH
+  (u1:User {id:'u1'}),
+  (u2:User {id:'u2'}),
+  (u3:User {id:'u3'}),
+  (u4:User {id:'u4'}),
+  (p1:Post {id:'p1'}),
+  (p2:Post {id:'p2'}),
+  (p3:Post {id:'p3'}),
+  (p4:Post {id:'p4'}),
+  (p5:Post {id:'p5'})
+CREATE
+  // likes
+  (u2)-[:LIKED {at:datetime('2025-11-22T10:05:00')}]->(p1),
+  (u3)-[:LIKED {at:datetime('2025-11-22T10:10:00')}]->(p1),
+  (u1)-[:LIKED {at:datetime('2025-11-22T11:10:00')}]->(p2),
+  (u4)-[:LIKED {at:datetime('2025-11-21T09:40:00')}]->(p3),
+  (u1)-[:LIKED {at:datetime('2025-11-19T21:15:00')}]->(p5),
+
+  // comentários como nós COMMENT
+  (c1:Comment {text:'Boa! Também estudando grafos.', createdAt:datetime('2025-11-22T10:20:00')}),
+  (c2:Comment {text:'Quero esse café aí!',           createdAt:datetime('2025-11-22T11:20:00')}),
+  (c3:Comment {text:'Vou para Campinas sim.',        createdAt:datetime('2025-11-21T10:00:00')})
+CREATE
+  (u2)-[:COMMENTED]->(c1)-[:ON_POST]->(p1),
+  (u3)-[:COMMENTED]->(c2)-[:ON_POST]->(p2),
+  (u4)-[:COMMENTED]->(c3)-[:ON_POST]->(p3);
+// 7.1. Feed básico do usuário (posts de quem ele segue, ordenados por data)
+MATCH (u:User {id:'u1'})-[:FOLLOWS]->(f:User)-[:POSTED]->(p:Post)
+RETURN f.name AS autor, p.text AS post, p.createdAt AS data
+ORDER BY data DESC;
+// 7.2. Sugestão de amigos: pessoas seguidas pelos meus amigos que eu ainda não sigo
+MATCH (me:User {id:'u1'})-[:FOLLOWS]->(friend:User)-[:FOLLOWS]->(sug:User)
+WHERE NOT (me)-[:FOLLOWS]->(sug) AND me <> sug
+RETURN sug.name AS sugestao, count(*) AS em_comum
+ORDER BY em_comum DESC;
+// 7.3. Posts com a hashtag #neo4j
+MATCH (h:Hashtag {name:'#neo4j'})<-[:TAGGED_WITH]-(p:Post)<-[:POSTED]-(u:User)
+RETURN u.name AS autor, p.text AS post, p.createdAt AS data
+ORDER BY data DESC;
+// 7.4. Caminho de conexão entre dois usuários (grau de separação)
+MATCH p = shortestPath(
+  (u1:User {name:'Gabriel'})-[:FOLLOWS*1..5]-(u2:User {name:'Carlos'})
+)
+RETURN p;
+// 7.5. Top 3 posts mais curtidos
+MATCH (u:User)-[l:LIKED]->(p:Post)
+RETURN p.text AS post, count(l) AS likes
+ORDER BY likes DESC
+LIMIT 3;
+// 7.6. Participantes de um grupo e seus posts
+MATCH (g:Group {name:'Dev Back-end'})<-[:IN_GROUP]-(p:Post)<-[:POSTED]-(u:User)
+RETURN g.name AS grupo, u.name AS autor, p.text AS post, p.createdAt AS data
+ORDER BY data DESC;
